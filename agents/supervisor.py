@@ -71,7 +71,28 @@ def supervisor_node(state: AgentState):
         
         results.append(step_result)
     
-    final_report = "\n".join(results)
+    # FINAL SYNTHESIS: Use LLM to create a coherent natural language summary
+    print("\n[SUPERVISOR] Synthesizing final report...")
+    
+    llm = get_llm()
+    synthesis_prompt = f"""You are a financial analyst. I've gathered the following information:
+
+{chr(10).join(results)}
+
+Based on this data, write a clear, concise summary for the user. Include:
+1. Key findings from the data
+2. Important news highlights
+3. Actionable insights
+
+Write in a professional but conversational tone. Be specific with numbers."""
+
+    try:
+        synthesis_response = llm.invoke([{"role": "user", "content": synthesis_prompt}])
+        final_report = synthesis_response.content
+    except Exception as e:
+        print(f"[SYNTHESIS ERROR] {e}")
+        final_report = "\n\n".join(results)  # Fallback to raw data
+    
     return {"final_report": final_report}
 
 
