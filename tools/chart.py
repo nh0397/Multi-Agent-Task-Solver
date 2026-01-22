@@ -49,3 +49,46 @@ def generate_chart(ticker: str, data_csv: str):
         return fig
     except Exception as e:
         return f"Error creating chart: {str(e)}"
+
+
+def generate_comparison_chart(tickers_data: dict):
+    """
+    Generates a comparison chart for multiple tickers on the same graph.
+    
+    Args:
+        tickers_data: Dict of {ticker: csv_data}
+    
+    Returns:
+        Plotly figure with all tickers overlaid
+    """
+    try:
+        fig = go.Figure()
+        
+        for ticker, data_csv in tickers_data.items():
+            df = pd.read_csv(io.StringIO(data_csv))
+            
+            if df.empty:
+                continue
+            
+            # Use Close price for comparison
+            if 'Close' in df.columns and 'Date' in df.columns:
+                fig.add_trace(go.Scatter(
+                    x=df['Date'], 
+                    y=df['Close'], 
+                    mode='lines', 
+                    name=ticker
+                ))
+        
+        if len(fig.data) == 0:
+            return "Error: No valid data to compare"
+        
+        fig.update_layout(
+            title=f"Stock Comparison: {', '.join(tickers_data.keys())}", 
+            template="plotly_dark",
+            xaxis_title="Date",
+            yaxis_title="Price (USD)",
+            hovermode='x unified'
+        )
+        return fig
+    except Exception as e:
+        return f"Error creating comparison chart: {str(e)}"

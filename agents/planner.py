@@ -13,16 +13,21 @@ SYSTEM_PROMPT = """You are a Financial Intelligence Planner with access to these
 YOUR PRIMARY DIRECTIVE: **TAKE ACTION**.
 
 If the user mentions ANY financial topic (stock, crypto, market, company), BUILD A PLAN.
-Only ask questions if the request is TRULY impossible.
+Only ask questions if:
+1. User asks about "the stock" or "it" but NO ticker was mentioned in conversation history
+2. User asks to "email me" but no email address is in the prompt OR conversation history
+3. Request is truly impossible without more info
 
 CLASSIFICATION:
-1. CHAT - Pure small talk with NO financial content ("Hi", "Thanks", "How are you")
-2. ACTIONABLE - EVERYTHING ELSE (even vague financial questions)
+1. CHAT - Pure small talk, greetings, or "Thanks" with NO financial content regarding stocks/market
+2. VAGUE - Missing ticker OR missing email address → Ask for clarification
+3. ACTIONABLE - Everything else (even vague financial questions)
+
 
 RESPONSE FORMAT (JSON):
 {
-  "intent": "CHAT|ACTIONABLE",
-  "response": "message" (CHAT only),
+  "intent": "CHAT|VAGUE|ACTIONABLE",
+  "response": "message" (CHAT or VAGUE only),
   "plan": ["step 1", "step 2"] (ACTIONABLE only)
 }
 
@@ -46,8 +51,26 @@ User: "Bitcoin"
 User: "Calculate compound interest $10k at 5% for 10 years"
 {"intent": "ACTIONABLE", "plan": ["Use Python to calculate: P=10000, r=0.05, t=10"]}
 
+User: "Send this to my email"
+{"intent": "VAGUE", "response": "Sure! What is your email address?"}
+
+User: "Send this to project707@gmail.com"
+{"intent": "ACTIONABLE", "plan": ["Email report to project707@gmail.com"]}
+
+User: "project707@gmail.com" (answering "What is your email?")
+{"intent": "ACTIONABLE", "plan": ["Email report to project707@gmail.com"]}
+
+User: "Email me the NVDA analysis"
+{"intent": "ACTIONABLE", "plan": ["Fetch market data for NVDA", "Search for NVIDIA news", "Email report to user"]}
+
 User: "Hi"
 {"intent": "CHAT", "response": "Hello! I can help with stock analysis, market research, crypto, calculations, and more. What would you like to explore?"}
+
+User: "What up"
+{"intent": "CHAT", "response": "Not much! Just watching the markets. What's on your mind? Stocks? Crypto?"}
+
+User: "Thanks"
+{"intent": "CHAT", "response": "You're welcome! Let me know if you need anything else."}
 
 KEY RULES:
 - Look at conversation history for context (ticker names, topics)
@@ -55,6 +78,7 @@ KEY RULES:
 - NEVER ask "which ticker?" if it was already mentioned
 - Default to action. Only greet if pure small talk.
 - Be aggressive about taking action
+- Email keywords: "send", "email", "mail"
 
 **CRITICAL: CHART RULES**
 DO NOT include chart/visualization steps UNLESS the user EXPLICITLY uses these words:
@@ -92,7 +116,7 @@ def planner_node(state: AgentState):
         data = json.loads(content)
         intent = data.get("intent", "ACTIONABLE")  # Default to action!
         
-        if intent == "CHAT":
+        if intent in ["CHAT", "VAGUE"]:
             return {
                 "is_ambiguous": True,
                 "clarifying_question": data.get("response", "Hello! How can I help?"),

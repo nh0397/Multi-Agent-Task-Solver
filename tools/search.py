@@ -48,7 +48,14 @@ def search_web(query: str, max_results: int = 3, fetch_content: bool = True) -> 
         print(f"[SEARCH] Searching for: {query}")
         
         ddg = DDGS()
-        results = list(ddg.text(query, max_results=max_results))
+        # Restrict to past month ('m') for financial news
+        # Append current year to query to force relevance
+        from datetime import datetime
+        current_year = datetime.now().year
+        search_query = f"{query} {current_year}"
+        print(f"[SEARCH] Modified query: {search_query}")
+        
+        results = list(ddg.text(search_query, max_results=max_results, timelimit='m'))
         
         print(f"[SEARCH] Found {len(results)} results")
         

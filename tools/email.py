@@ -58,6 +58,12 @@ def send_email(recipient: str, subject: str, body: str, attachments: list = None
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
             server.login(sender_email, sender_password)
+            # Log email details before sending
+            print(f"[EMAIL DEBUG] Sending to: {recipient}")
+            print(f"[EMAIL DEBUG] Subject: {subject}")
+            print(f"[EMAIL DEBUG] Body Length: {len(body)} chars")
+            print(f"[EMAIL DEBUG] Attachments: {attachments}")
+            
             server.send_message(msg)
             
         attachment_info = f" with {len(attachments)} attachment(s)" if attachments else ""

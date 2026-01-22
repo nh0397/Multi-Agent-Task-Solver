@@ -24,4 +24,9 @@ class AgentState(TypedDict):
     charts: List  # List of Plotly figure objects
     
     # Sources/citations from search results
+    # Sources/citations from search results
     sources: List[dict]  # List of {title, url} dicts
+
+    # Persistent context data (market data csvs, chart paths)
+    # This persists across conversation turns
+    context_data: dict

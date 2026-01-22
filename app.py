@@ -25,7 +25,9 @@ What would you like to explore?""",
     ).send()
     
     # Initialize with empty list
+    # Initialize session state
     cl.user_session.set("chat_history", [])
+    cl.user_session.set("context_data", {"market_data": {}, "chart_paths": []})
 
 
 @cl.on_message
@@ -37,12 +39,17 @@ async def main(message: cl.Message):
     chat_history.append({"role": "user", "content": message.content})
     cl.user_session.set("chat_history", chat_history)
     
+    context_data = cl.user_session.get("context_data") or {"market_data": {}, "chart_paths": []}
+    
     initial_state = {
         "messages": chat_history,
         "plan": [],
         "is_ambiguous": False,
         "clarifying_question": "",
-        "final_report": ""
+        "final_report": "",
+        "charts": [],
+        "sources": [],
+        "context_data": context_data
     }
     
     # Planning step (collapsible)
@@ -80,7 +87,8 @@ async def main(message: cl.Message):
     # Execution step (collapsible)
     if plan:
         async with cl.Step(name=f"Executing {len(plan)} steps", type="tool") as execution_step:
-            execution_step.output = "Tools executed"
+            step_list = "\n".join([f"- {step}" for step in plan])
+            execution_step.output = f"Running:\n{step_list}"
     
     # Send final response with streaming
     if final_state and "final_report" in final_state and final_state["final_report"]:
@@ -99,7 +107,7 @@ async def main(message: cl.Message):
         if "charts" in final_state and final_state["charts"]:
             for i, fig in enumerate(final_state["charts"], 1):
                 await cl.Message(
-                    content=f"**Chart {i}**",
+                    content="",
                     elements=[cl.Plotly(name=f"chart_{i}", figure=fig, display="inline")]
                 ).send()
         
@@ -115,5 +123,9 @@ async def main(message: cl.Message):
         # Update history with actual response
         chat_history.append({"role": "assistant", "content": response})
         cl.user_session.set("chat_history", chat_history)
+        
+        # Persist context data (market CSVs, charts)
+        if "context_data" in final_state:
+            cl.user_session.set("context_data", final_state["context_data"])
     else:
         await cl.Message(content="Task completed.").send()
