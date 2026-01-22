@@ -20,10 +20,10 @@ graph TD
         Plan --> Supervisor[Supervisor Agent]
         Supervisor --> Router{Router}
 
-        Router -- "Fetch Data" --> Market[Market Tool (yfinance)]
-        Router -- "Research" --> Search[Search Tool (DuckDuckGo)]
-        Router -- "Visualize" --> Chart[Chart Tool (Plotly)]
-        Router -- "Report" --> Email[Email Tool (SMTP)]
+        Router -- "Fetch Data" --> Market["Market Tool (yfinance)"]
+        Router -- "Research" --> Search["Search Tool (DuckDuckGo)"]
+        Router -- "Visualize" --> Chart["Chart Tool (Plotly)"]
+        Router -- "Report" --> Email["Email Tool (SMTP)"]
 
         Market --> Context[Shared State Context]
         Search --> Context
