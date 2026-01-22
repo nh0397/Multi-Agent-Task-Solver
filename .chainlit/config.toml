@@ -92,7 +92,7 @@ reaction_on_message_received = false
 
 [UI]
 # Name of the assistant.
-name = "Assistant"
+name = "Multi-Agent Task Solver (Financial Domain)"
 
 # default_theme = "dark"
 

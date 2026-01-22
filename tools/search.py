@@ -39,9 +39,10 @@ def fetch_article_content(url: str, max_length: int = 1000) -> str:
         return f"(Error fetching content: {e})"
 
 
-def search_web(query: str, max_results: int = 3, fetch_content: bool = True) -> str:
+def search_web(query: str, max_results: int = 3, fetch_content: bool = True) -> dict:
     """
     Searches the web using DuckDuckGo and optionally fetches full article content.
+    Returns dict with 'content' (formatted text) and 'sources' (list of URLs).
     """
     try:
         print(f"[SEARCH] Searching for: {query}")
@@ -52,13 +53,18 @@ def search_web(query: str, max_results: int = 3, fetch_content: bool = True) -> 
         print(f"[SEARCH] Found {len(results)} results")
         
         if not results:
-            return "No results found."
+            return {"content": "No results found.", "sources": []}
         
         formatted = ""
+        sources = []
+        
         for i, res in enumerate(results, 1):
             title = res.get('title', 'No title')
             href = res.get('href', res.get('link', 'No URL'))
             snippet = res.get('body', res.get('snippet', ''))
+            
+            # Store source for citation
+            sources.append({"title": title, "url": href})
             
             formatted += f"\n{'='*60}\n"
             formatted += f"Result {i}: {title}\n"
@@ -71,11 +77,11 @@ def search_web(query: str, max_results: int = 3, fetch_content: bool = True) -> 
             else:
                 formatted += f"Snippet: {snippet}\n"
         
-        return formatted
+        return {"content": formatted, "sources": sources}
     
     except Exception as e:
         print(f"[SEARCH ERROR] {type(e).__name__}: {e}")
-        return f"Search failed: {str(e)}"
+        return {"content": f"Search failed: {str(e)}", "sources": []}
 
 if __name__ == "__main__":
     print("Testing search with content extraction...")

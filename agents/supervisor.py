@@ -14,10 +14,12 @@ def supervisor_node(state: AgentState):
     plan = state['plan']
     
     if not plan:
-        return {"final_report": "No plan to execute."}
+        return {"final_report": "No plan to execute.", "charts": [], "sources": []}
     
     results = []
     market_data = {}  # Store fetched data by ticker
+    charts = []  # Store Plotly figures
+    sources = []  # Store search sources for citation
     
     for i, step in enumerate(plan, 1):
         print(f"\n[SUPERVISOR] Step {i}/{len(plan)}: {step}")
@@ -47,7 +49,9 @@ def supervisor_node(state: AgentState):
             
             elif tool_choice['tool'] == 'search':
                 query = tool_choice['params'].get('query', step)
-                step_result += search_web(query)
+                result = search_web(query)
+                step_result += result['content']
+                sources.extend(result['sources'])  # Collect sources
             
             elif tool_choice['tool'] == 'chart':
                 ticker = tool_choice['params'].get('ticker', extract_ticker(step))
@@ -58,15 +62,35 @@ def supervisor_node(state: AgentState):
                         print(f"[CHART ERROR] {fig}")
                         step_result += f"Chart generation skipped for {ticker}"
                     else:
-                        step_result += f"✓ Interactive chart generated for {ticker}\n(Chart will render in UI)"
+                        charts.append(fig)  # Store the Plotly figure
+                        step_result += f"✓ Interactive chart generated for {ticker}"
                 else:
                     step_result += f"Note: Chart skipped - no market data for {ticker}"
             
             elif tool_choice['tool'] == 'email':
+                from tools.email import format_report_html
+                
                 recipient = tool_choice['params'].get('recipient', 'user@example.com')
                 subject = tool_choice['params'].get('subject', 'Financial Analysis Report')
-                body = "\n\n".join(results)
-                step_result += send_email(recipient, subject, body)
+                
+                # Format report as HTML
+                report_content = "\n\n".join(results)
+                html_body = format_report_html(
+                    title=subject,
+                    content=report_content,
+                    sources=sources if sources else None
+                )
+                
+                # Save charts as temporary files for attachment
+                chart_files = []
+                for i, fig in enumerate(charts, 1):
+                    chart_path = f"/tmp/chart_{i}.html"
+                    fig.write_html(chart_path)
+                    chart_files.append(chart_path)
+                
+                # Send email with attachments
+                result = send_email(recipient, subject, html_body, attachments=chart_files if chart_files else None)
+                step_result += result
             
             elif tool_choice['tool'] == 'logic':
                 # Python code execution would go here
@@ -102,7 +126,7 @@ Write in a professional but conversational tone. Be specific with numbers."""
         print(f"[SYNTHESIS ERROR] {e}")
         final_report = "\n\n".join(results)  # Fallback to raw data
     
-    return {"final_report": final_report}
+    return {"final_report": final_report, "charts": charts, "sources": sources}
 
 
 def decide_tool(step: str) -> dict:

@@ -21,7 +21,9 @@ def main():
             "plan": [],
             "is_ambiguous": False,
             "clarifying_question": "",
-            "final_report": ""
+            "final_report": "",
+            "charts": [],
+            "sources": []
         }
         
         print("\n[Thinking...]")

@@ -19,3 +19,9 @@ class AgentState(TypedDict):
     
     # The final output to show the user
     final_report: str
+    
+    # Charts generated during execution (Plotly figures)
+    charts: List  # List of Plotly figure objects
+    
+    # Sources/citations from search results
+    sources: List[dict]  # List of {title, url} dicts
