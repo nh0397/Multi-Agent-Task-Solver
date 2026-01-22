@@ -1,48 +1,198 @@
-# Multi-Agent Task Solver
+# Multi-Agent Task Solver (Financial Domain)
 
-This system is a **Multi-Agent Task Solver** designed to interpret high-level user requests, break them down into executable sub-tasks, and orchestrate specialized agents to deliver a comprehensive result.
+A production-ready multi-agent system that interprets natural language requests, breaks them into executable tasks, and orchestrates specialized agents to deliver comprehensive financial analysis.
 
-For this implementation, the system is specifically scoped to the **Financial Domain** to demonstrate deep context retrieval and analysis.
+## Features
 
-## The Architecture
+- **Natural Language Interface** - Ask questions in plain English
+- **Intelligent Planning** - Automatically breaks down complex requests into steps
+- **Specialized Agents** - Market data, web search, charting, and email
+- **Context-Aware** - Remembers conversation history for follow-up questions
+- **Interactive Charts** - Plotly visualizations rendered inline
+- **Source Citations** - Perplexity-style collapsible source links
+- **Email Reports** - HTML-formatted reports with chart attachments
+- **Streaming Responses** - Real-time token-by-token output
 
-A **Planner-Supervisor** pattern is utilized to handle ambiguity and ensure execution accuracy.
+## Quick Start
 
-### 1. The Planner (Gatekeeper)
+### 1. Installation
 
-The entry point for all requests. It evaluates the user's input for clarity.
+```bash
+# Clone the repository
+git clone https://github.com/nh0397/Multi-Agent-Task-Solver.git
+cd Multi-Agent-Task-Solver
 
-- **Ambiguity Check**: If the request is vague (e.g., "How is the stock?"), it halts execution and asks clarifying questions.
-- **Plan Generation**: If the request is clear, it generates a structured `ExecutionPlan`.
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-### 2. The Supervisor (Manager)
+# Install dependencies
+pip install -r requirements.txt
+```
 
-A stateful orchestrator that executes the approved plan by routing tasks to specialized workers.
+### 2. Configuration
 
-### 3. The Agents (Workers)
+Create a `.env` file:
 
-Agents are categorized into two types: **Generalist** and **Specialist**.
+```bash
+# Required: Groq API key
+GROQ_API_KEY=your_groq_api_key_here
 
-#### A. The Generalist (Compute)
+# Optional: Email functionality
+EMAIL_USER=your.email@gmail.com
+EMAIL_PASSWORD=your_app_password
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+```
 
-- **Logic Agent**: A "Code Interpreter" that writes and runs Python code. It handles dynamic tasks like complex math, data transformation, or unforeseen problems.
+**Get Groq API Key:** https://console.groq.com/keys
 
-#### B. The Specialists (Reliability)
+**Gmail Setup:** Enable 2FA and generate app password at https://myaccount.google.com/apppasswords
 
-Hardcoded specialist agents are used for interacting with the outside world to ensure **reliability** and **safety** (avoiding broken scrapers or mishandled secrets).
+### 3. Run
 
-- **Market Agent**: Fetches real-time OHLC data using `yfinance`.
-- **Research Agent**: Retrieves recent news and context using `duckduckgo-search`.
-- **Chart Agent**: Generates interactive visualization using `plotly`.
-- **Email Agent**: Formats and dispatches (mocks) the final intelligence report.
+**CLI Mode:**
 
-> **Why split them?**
-> A Logic agent _could_ try to scrape the web to find stock prices, but it might get blocked or crash. By using a specialized **Market Agent**, reliable access to data is guaranteed, while leaving the **Logic Agent** free to do the difficult math on that data.
+```bash
+python main.py
+```
 
-_Note: The architecture is designed to be extensible. To add a new capability (e.g., "Calendar Management"), simply add a new Agent+Tool pair and register it with the Supervisor._
+**Web UI (Chainlit):**
+
+```bash
+chainlit run app.py -w
+```
+
+Then open http://localhost:8000
+
+## Example Queries
+
+```
+Analyze NVDA stock
+Compare TSLA and RIVN performance
+Show me Bitcoin price chart for last month
+Why did tech stocks drop today?
+Analyze MSFT and email the report to me@example.com
+```
+
+## Architecture
+
+### Planner-Supervisor Pattern
+
+```
+User Input → Planner → Supervisor → Specialized Tools → LLM Synthesis → Response
+```
+
+**Planner (Gatekeeper)**
+
+- Classifies intent (CHAT vs ACTIONABLE)
+- Generates execution plan
+- Asks clarifying questions if needed
+
+**Supervisor (Orchestrator)**
+
+- Routes plan steps to appropriate tools
+- Manages data flow between tools
+- Synthesizes final report using LLM
+
+**Specialized Agents**
+
+- **Market Agent** - `yfinance` for stock/crypto data
+- **Search Agent** - `duckduckgo-search` for news with content extraction
+- **Chart Agent** - `plotly` for interactive visualizations
+- **Email Agent** - `smtplib` for HTML reports with attachments
+
+### Why Specialized Agents?
+
+A generalist "Logic Agent" could theoretically scrape stock data, but it might fail due to rate limits, CAPTCHAs, or API changes. Specialized agents guarantee **reliability** and **safety** while keeping the system extensible.
 
 ## Technology Stack
 
-- **Python & LangGraph**: For stateful, cyclic agent orchestration.
-- **Groq (Llama 3)**: For high-speed, low-latency inference.
-- **Chainlit**: For a "Thinking Process" UI that visualizes the agent's internal state.
+- **LangGraph** - Stateful agent orchestration
+- **Groq (Llama 3.3 70B)** - High-speed LLM inference
+- **Chainlit** - Interactive chat UI with streaming
+- **yfinance** - Market data
+- **DuckDuckGo Search** - Web search
+- **Plotly** - Interactive charts
+- **BeautifulSoup4** - Content extraction
+
+## Project Structure
+
+```
+Multi-Agent-Task-Solver/
+├── agents/
+│   ├── state.py          # Shared state definition
+│   ├── llm.py            # LLM configuration
+│   ├── planner.py        # Planning logic
+│   ├── supervisor.py     # Orchestration logic
+│   └── graph.py          # LangGraph workflow
+├── tools/
+│   ├── market.py         # Stock data fetching
+│   ├── search.py         # Web search + scraping
+│   ├── chart.py          # Chart generation
+│   └── email.py          # Email with attachments
+├── main.py               # CLI entry point
+├── app.py                # Chainlit web UI
+└── README.md
+```
+
+## Extending the System
+
+To add a new capability (e.g., "Calendar Management"):
+
+1. **Create tool** in `tools/calendar.py`
+2. **Register in supervisor** (`agents/supervisor.py`)
+3. **Update planner examples** (`agents/planner.py`)
+
+The system is designed to be modular and extensible.
+
+## Development
+
+**Run tests:**
+
+```bash
+python test_chart.py  # Test chart generation
+python -m tools.search  # Test search tool
+```
+
+**Watch mode (auto-reload):**
+
+```bash
+chainlit run app.py -w
+```
+
+## Troubleshooting
+
+**"No module named 'yfinance'"**
+
+- Run: `pip install -r requirements.txt`
+
+**"GROQ_API_KEY not found"**
+
+- Create `.env` file with your API key
+
+**Email not working**
+
+- Check `.env.email.example` for configuration
+- Gmail requires app password, not regular password
+
+**Rate limiting**
+
+- Groq free tier: 30 RPM, 14,400 TPD
+- Consider upgrading for production use
+
+## License
+
+MIT
+
+## Contributing
+
+Pull requests welcome! Please ensure:
+
+- Code follows existing style
+- New tools include error handling
+- Update README for new features
+
+## Acknowledgments
+
+Built with LangGraph, Groq, and Chainlit.
