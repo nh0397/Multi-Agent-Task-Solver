@@ -13,9 +13,10 @@ def get_llm():
     if not api_key:
         print("Warning: GROQ_API_KEY not found in environment. Using mock/fallback if available.")
     
-    # We use Llama 3 70B for high intelligence via LangChain
+    # We use Llama 3.3 70B Versatile for high intelligence + good rate limits
+    # Free tier: 30 RPM, 14,400 TPD
     return ChatGroq(
         temperature=0, 
-        model_name="llama-3.1-8b-instant", 
+        model_name="llama-3.3-70b-versatile", 
         api_key=api_key
     )
