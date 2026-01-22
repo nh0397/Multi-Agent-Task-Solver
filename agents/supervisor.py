@@ -159,7 +159,21 @@ Write a comprehensive email body.
                     email_body_response = llm.invoke([{"role": "user", "content": email_prompt}])
                     email_body_text = email_body_response.content
                 except:
-                    email_body_text = "Here is the report based on our conversation."
+                    email_body_text = ""
+
+                # Robust Fallback: If AI returns empty/short gibberish, use conversation summary
+                if not email_body_text or len(email_body_text) < 50:
+                    print("[EMAIL WARNING] AI generated empty body. Using fallback.")
+                    email_body_text = f"""
+Hello,
+
+Here is the financial report you requested based on our conversation.
+
+SUMMARY OF RECENT ACTIVITY:
+{history_text[-1000:]}
+
+Please find the requested charts and data attached.
+"""
 
                 # Format report as HTML
                 html_body = format_report_html(
