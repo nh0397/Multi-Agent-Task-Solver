@@ -32,9 +32,16 @@ def supervisor_node(state: AgentState):
             if tool_choice['tool'] == 'market':
                 ticker = tool_choice['params'].get('ticker', extract_ticker(step))
                 if ticker:
-                    data = get_stock_prices(ticker)
-                    market_data[ticker] = data  # Save for charting
-                    step_result += data
+                    # Only fetch if we don't have it already
+                    if ticker not in market_data:
+                        result = get_stock_prices(ticker)
+                        if result['error']:
+                            step_result += result['message']
+                        else:
+                            market_data[ticker] = result['csv']  # Store pure CSV
+                            step_result += f"{result['message']}\n\n{result['csv']}"
+                    else:
+                        step_result += f"Using existing market data for {ticker}"
                 else:
                     step_result += "Error: No ticker found"
             
@@ -47,11 +54,13 @@ def supervisor_node(state: AgentState):
                 if ticker and ticker in market_data:
                     fig = generate_chart(ticker, market_data[ticker])
                     if isinstance(fig, str):
-                        step_result += fig
+                        # Chart errored - don't include in synthesis
+                        print(f"[CHART ERROR] {fig}")
+                        step_result += f"Chart generation skipped for {ticker}"
                     else:
                         step_result += f"✓ Interactive chart generated for {ticker}\n(Chart will render in UI)"
                 else:
-                    step_result += f"Error: No market data available for {ticker}. Fetch data first."
+                    step_result += f"Note: Chart skipped - no market data for {ticker}"
             
             elif tool_choice['tool'] == 'email':
                 recipient = tool_choice['params'].get('recipient', 'user@example.com')
