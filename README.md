@@ -6,7 +6,7 @@ A state-aware multi-agent system designed to act as a competent financial analys
 
 ### System Overview
 
-![Architecture Diagram](architecture_diagram_1769103579280.png)
+![Architecture Diagram](architecture_diagram.png)
 
 ### Design Decisions & Trade-offs
 
