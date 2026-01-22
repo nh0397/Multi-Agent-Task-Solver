@@ -4,36 +4,9 @@ A state-aware multi-agent system designed to act as a competent financial analys
 
 ## Architecture & Design
 
-### System Overview (Flowchart)
+### System Overview
 
-```mermaid
-graph TD
-    User([User Input]) --> Planner[Planner Agent]
-
-    subgraph "Reasoning Phase"
-        Planner -- "Ambiguous?" --> Question[Ask Clarifying Question]
-        Question --> User
-        Planner -- "Clear?" --> Plan[Execution Plan]
-    end
-
-    subgraph "Execution Phase (Supervisor)"
-        Plan --> Supervisor[Supervisor Agent]
-        Supervisor --> Router{Router}
-
-        Router -- "Fetch Data" --> Market["Market Tool (yfinance)"]
-        Router -- "Research" --> Search["Search Tool (DuckDuckGo)"]
-        Router -- "Visualize" --> Chart["Chart Tool (Plotly)"]
-        Router -- "Report" --> Email["Email Tool (SMTP)"]
-
-        Market --> Context[Shared State Context]
-        Search --> Context
-        Chart --> Context
-
-        Context --> Synthesis[LLM Synthesis]
-    end
-
-    Synthesis --> Output([Final Response])
-```
+![Architecture Diagram](architecture_diagram_1769103579280.png)
 
 ### Design Decisions & Trade-offs
 
@@ -41,27 +14,30 @@ During the development of this system, several architectural trade-offs were con
 
 #### 1. Planner-Supervisor Pattern vs. Single Loop (ReAct)
 
-- **Decision**: Adopted a two-step **Planner-Supervisor** pattern.
-- **Why**: A single "ReAct" loop often rushes to execution. For example, if a user asks "How is the market?", a simple agent might randomly pick a stock. A **Planner** acts as a firewall, detecting ambiguity (e.g., "Which market?") and asking clarifying questions before any tools are invoked. This ensures safety and precision.
+- **Decision**: A two-step **Planner-Supervisor** pattern was adopted.
+- **Rationale**: A single "ReAct" loop often rushes to execution. For example, if a user asks "How is the market?", a simple agent might randomly pick a stock. A **Planner** acts as a firewall, detecting ambiguity (e.g., "Which market?") and asking clarifying questions before any tools are invoked. This ensures safety and precision.
 
-#### 2. Groq (Llama/Mixtral) vs. OpenAI (GPT-4)
+#### 2. LLM Provider (Groq) & Model Selection
 
-- **Decision**: Utilized **Groq** for interference.
-- **Trade-off**: OpenAI offers slightly higher reasoning capabilities (GPT-4), but at the cost of latency. Groq provides near-instant inference (300+ tokens/s).
-- **Result**: The "agentic loop" feels real-time. We addressed rate limits by implementing model fallbacks (switching from Llama 70b to Mixtral/GPT-OSS when needed).
+- **Decision**: **Groq** is utilized for interference to ensure low latency.
+- **Model Strategy**: The system is designed to switch between models based on rate limits and availability.
+  - **Mixtral 8x7b**: Used for high-speed routing.
+  - **Llama 3 70B**: Used for complex reasoning.
+  - **GPT-OSS-120B**: Currently selected for enhanced synthesis capabilities.
+- **Trade-off**: While OpenAI (GPT-4) offers marginally higher reasoning capabilities, the latency introduced by external API calls disrupts the real-time "agentic" feel. Groq's sub-second inference speeds were prioritized to maintain a responsive user experience.
 
 #### 3. Chainlit vs. Streamlit/Next.js
 
-- **Decision**: Built the UI with **Chainlit**.
-- **Why**:
-  - _Next.js_: Too complex for a rapid Python-based agent prototype.
-  - _Streamlit_: Refreshes the entire page on interaction, breaking the conversational flow.
-  - _Chainlit_: Built specifically for LLM apps, providing native streaming, "Step" expansion, and persistent chat sessions out of the box.
+- **Decision**: The UI is built with **Chainlit**.
+- **Rationale**:
+  - _Next.js_ was considered too complex for a rapid Python-based agent prototype.
+  - _Streamlit_ refreshes the entire page on interaction, breaking the conversational flow.
+  - _Chainlit_ is built specifically for LLM apps, providing native streaming, "Step" expansion, and persistent chat sessions out of the box.
 
 #### 4. Specialized Agents vs. Generalist
 
-- **Decision**: Implemented dedicated tools for Market, Search, and Email.
-- **Why**: Generalist LLMs hallucinate data. Hard-coded tools (using `yfinance` for prices, `smtplib` for email) provide deterministic guarantees. The LLM's role is restricted to _orchestration_ and _synthesis_, not data generation.
+- **Decision**: Dedicated tools were implemented for Market, Search, and Email.
+- **Rationale**: Generalist LLMs can hallucinate data. Hard-coded tools (using `yfinance` for prices, `smtplib` for email) provide deterministic guarantees. The LLM's role is restricted to _orchestration_ and _synthesis_, not data generation.
 
 ---
 
@@ -103,7 +79,7 @@ Create a `.env` file in the project root:
 
 ```ini
 # Required
-GROQ_API_KEY=your_dummy_key_here
+GROQ_API_KEY=your_key_here
 
 # Optional (for Email features)
 EMAIL_USER=your_email@gmail.com
@@ -112,7 +88,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 ```
 
-_Note: If using Gmail, you must generate an [App Password](https://myaccount.google.com/apppasswords)._
+_Note: If using Gmail, an [App Password](https://myaccount.google.com/apppasswords) is required._
 
 ### Step 5: Run the Application
 
